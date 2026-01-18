@@ -2,16 +2,22 @@
 
 ---
 
-## Os desafios estão separados por Branches
+## Desafio Multithreading
 
----
+Aplicação em Go que busca informações de CEP em duas APIs simultaneamente (ViaCEP e BrasilAPI) e retorna o resultado da mais rápida, descartando a mais lenta.
 
-- ### Desafio Client-Server-API
+### Pré-requisitos
 
-        Encontra-se na branch: client-server-api
+- Go 1.21+
 
----
+### Como rodar
 
-- ### Desafio Multithreading
+```bash
+go run main.go CEP
+```
 
-        Encontra-se na branch: multithreading
+Exemplos:
+```bash
+go run main.go 01153-000
+go run main.go 01153000
+```
