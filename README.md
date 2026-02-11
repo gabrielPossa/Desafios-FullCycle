@@ -15,3 +15,9 @@
 - ### Desafio Multithreading
 
         Encontra-se na branch: multithreading
+
+---
+
+- ### Desafio Clean Architecture
+
+        Encontra-se na branch: cleanArch
