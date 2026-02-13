@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/devfullcycle/20-CleanArch/internal/entity"
-	"github.com/devfullcycle/20-CleanArch/internal/usecase"
-	"github.com/devfullcycle/20-CleanArch/pkg/events"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/entity"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/usecase"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/pkg/events"
 )
 
 type WebOrderHandler struct {
@@ -41,6 +41,23 @@ func (h *WebOrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(output)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *WebOrderHandler) RetrieveAll(w http.ResponseWriter, r *http.Request) {
+	listOrders := usecase.NewListOrdersUseCase(h.OrderRepository)
+	output, err := listOrders.Execute()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(output)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

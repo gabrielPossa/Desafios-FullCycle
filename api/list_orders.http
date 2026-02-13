@@ -1,0 +1,21 @@
+### GET Orders REST
+GET http://localhost:8000/order HTTP/1.1
+Host: localhost:8000
+
+
+### List Orders GRAPHQL over HTTP
+
+GRAPHQL http://localhost:8080/query
+
+query {
+    orders {
+        id
+        Price
+        Tax
+        FinalPrice
+    }
+}
+
+### List Orders GRPC
+GRPC localhost:50051/pb.OrderService/ListOrders
+

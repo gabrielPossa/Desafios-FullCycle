@@ -6,13 +6,14 @@ package main
 import (
 	"database/sql"
 
-	"github.com/devfullcycle/20-CleanArch/internal/entity"
-	"github.com/devfullcycle/20-CleanArch/internal/event"
-	"github.com/devfullcycle/20-CleanArch/internal/infra/database"
-	"github.com/devfullcycle/20-CleanArch/internal/infra/web"
-	"github.com/devfullcycle/20-CleanArch/internal/usecase"
-	"github.com/devfullcycle/20-CleanArch/pkg/events"
 	"github.com/google/wire"
+
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/entity"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/event"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/infra/database"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/infra/web"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/usecase"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/pkg/events"
 )
 
 var setOrderRepositoryDependency = wire.NewSet(
@@ -39,6 +40,14 @@ func NewCreateOrderUseCase(db *sql.DB, eventDispatcher events.EventDispatcherInt
 		usecase.NewCreateOrderUseCase,
 	)
 	return &usecase.CreateOrderUseCase{}
+}
+
+func NewListOrdersUseCase(db *sql.DB) *usecase.ListOrdersUseCase {
+	wire.Build(
+		setOrderRepositoryDependency,
+		usecase.NewListOrdersUseCase,
+	)
+	return &usecase.ListOrdersUseCase{}
 }
 
 func NewWebOrderHandler(db *sql.DB, eventDispatcher events.EventDispatcherInterface) *web.WebOrderHandler {

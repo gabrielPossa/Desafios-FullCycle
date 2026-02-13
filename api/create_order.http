@@ -1,9 +1,37 @@
+### Create Order REST
 POST http://localhost:8000/order HTTP/1.1
 Host: localhost:8000
 Content-Type: application/json
 
 {
-    "id":"a",
+    "id": "rest-1",
     "price": 100.5,
-    "tax": 0.5
+    "tax": 10.05
+}
+
+### GET Orders REST
+GET http://localhost:8000/order HTTP/1.1
+Host: localhost:8000
+
+
+### Create Order GRAPHQL over HTTP
+
+GRAPHQL http://localhost:8080/query
+
+mutation createOrder {
+    createOrder(input: {id: "graphql-1", Price: 12.34, Tax:1.234}) {
+        id
+        Price
+        Tax
+        FinalPrice
+    }
+}
+
+### Create Order GRPC
+GRPC localhost:50051/pb.OrderService/CreateOrder
+
+{
+    "id": "grpc-2",
+    "price": 25.52,
+    "tax": 2.552
 }

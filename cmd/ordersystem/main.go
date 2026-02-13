@@ -8,34 +8,35 @@ import (
 
 	graphql_handler "github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/devfullcycle/20-CleanArch/configs"
-	"github.com/devfullcycle/20-CleanArch/internal/event/handler"
-	"github.com/devfullcycle/20-CleanArch/internal/infra/graph"
-	"github.com/devfullcycle/20-CleanArch/internal/infra/grpc/pb"
-	"github.com/devfullcycle/20-CleanArch/internal/infra/grpc/service"
-	"github.com/devfullcycle/20-CleanArch/internal/infra/web/webserver"
-	"github.com/devfullcycle/20-CleanArch/pkg/events"
 	"github.com/streadway/amqp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/configs"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/event/handler"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/infra/graph"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/infra/grpc/pb"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/infra/grpc/service"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/internal/infra/web/webserver"
+	"github.com/gabrielPossa/Desafios-FullCycle/cleanArch/pkg/events"
 
 	// mysql
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
-	configs, err := configs.LoadConfig(".")
+	loadedConfigs, err := configs.LoadConfig(".")
 	if err != nil {
 		panic(err)
 	}
 
-	db, err := sql.Open(configs.DBDriver, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", configs.DBUser, configs.DBPassword, configs.DBHost, configs.DBPort, configs.DBName))
+	db, err := sql.Open(loadedConfigs.DBDriver, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", loadedConfigs.DBUser, loadedConfigs.DBPassword, loadedConfigs.DBHost, loadedConfigs.DBPort, loadedConfigs.DBName))
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
 
-	rabbitMQChannel := getRabbitMQChannel()
+	rabbitMQChannel := getRabbitMQChannel(loadedConfigs.RabbitMQ)
 
 	eventDispatcher := events.NewEventDispatcher()
 	eventDispatcher.Register("OrderCreated", &handler.OrderCreatedHandler{
@@ -43,20 +44,22 @@ func main() {
 	})
 
 	createOrderUseCase := NewCreateOrderUseCase(db, eventDispatcher)
+	listOrdersUseCase := NewListOrdersUseCase(db)
 
-	webserver := webserver.NewWebServer(configs.WebServerPort)
+	httpServer := webserver.NewWebServer(loadedConfigs.WebServerPort)
 	webOrderHandler := NewWebOrderHandler(db, eventDispatcher)
-	webserver.AddHandler("/order", webOrderHandler.Create)
-	fmt.Println("Starting web server on port", configs.WebServerPort)
-	go webserver.Start()
+	httpServer.AddHandler("/order", webserver.POST, webOrderHandler.Create)
+	httpServer.AddHandler("/order", webserver.GET, webOrderHandler.RetrieveAll)
+	fmt.Println("Starting web server on port", loadedConfigs.WebServerPort)
+	go httpServer.Start()
 
 	grpcServer := grpc.NewServer()
-	createOrderService := service.NewOrderService(*createOrderUseCase)
-	pb.RegisterOrderServiceServer(grpcServer, createOrderService)
+	OrderService := service.NewOrderService(*createOrderUseCase, *listOrdersUseCase)
+	pb.RegisterOrderServiceServer(grpcServer, OrderService)
 	reflection.Register(grpcServer)
 
-	fmt.Println("Starting gRPC server on port", configs.GRPCServerPort)
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", configs.GRPCServerPort))
+	fmt.Println("Starting gRPC server on port", loadedConfigs.GRPCServerPort)
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", loadedConfigs.GRPCServerPort))
 	if err != nil {
 		panic(err)
 	}
@@ -64,16 +67,17 @@ func main() {
 
 	srv := graphql_handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
 		CreateOrderUseCase: *createOrderUseCase,
+		ListOrdersUseCase:  *listOrdersUseCase,
 	}}))
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 
-	fmt.Println("Starting GraphQL server on port", configs.GraphQLServerPort)
-	http.ListenAndServe(":"+configs.GraphQLServerPort, nil)
+	fmt.Println("Starting GraphQL server on port", loadedConfigs.GraphQLServerPort)
+	http.ListenAndServe(":"+loadedConfigs.GraphQLServerPort, nil)
 }
 
-func getRabbitMQChannel() *amqp.Channel {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+func getRabbitMQChannel(c configs.RabbitMQConfig) *amqp.Channel {
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/", c.User, c.Pass, c.Host, c.Port))
 	if err != nil {
 		panic(err)
 	}
